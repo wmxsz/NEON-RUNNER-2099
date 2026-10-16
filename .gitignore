@@ -1,19 +1,9 @@
-# Godot generated/cache files
 .godot/
-.import/
-.export/
-.export_template.cfg
+*.translation
+export.cfg
+android/build/
+__pycache__/
+*.pyc
 
-# Build/export outputs
-build/
-dist/
-*.apk
-*.aab
-*.keystore
-*.jks
-
-# Editor / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+# Keep export_presets.cfg versioned: this project ships a safe Android preset
+# with blank release keystore fields. Never store release credentials here.

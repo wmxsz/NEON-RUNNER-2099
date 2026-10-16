@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="432" height="432" viewBox="0 0 432 432">
+  <!-- 自适应图标前景：安全区居中 66%（285/432） -->
+  <path d="M96 324 L216 108 L336 324" fill="none" stroke="#FCEE0A" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="216" cy="252" r="30" fill="#00F0FF"/>
+</svg>

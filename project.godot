@@ -1,0 +1,51 @@
+; Engine configuration file.
+; NEON RUNNER 2099 — Godot 4 原生重制
+; 当前使用 Godot 4.7 Mobile 渲染器；运行验收与平台边界见 docs/RELEASE_STATUS.md。
+
+config_version=5
+
+[application]
+
+config/name="NEON RUNNER 2099"
+config/description="霓虹疾驰 2099 — Godot 4 原生跑酷 · 生命周期、存档完整性与移动端渲染统一加固"
+config/version="4.3.0-G"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7")
+config/icon="res://icon.svg"
+boot_splash/bg_color=Color(0.0431373, 0.0313726, 0.0705882, 1)
+boot_splash/show_image=false
+
+[autoload]
+
+Config="*res://core/config.gd"
+EventBus="*res://core/event_bus.gd"
+Telemetry="*res://core/telemetry.gd"
+
+[display]
+
+window/size/viewport_width=412
+window/size/viewport_height=915
+window/stretch/mode="canvas_items"
+window/stretch/aspect="keep"
+window/handheld/orientation=1
+window/energy_saving/keep_screen_on=true
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[physics]
+
+common/physics_ticks_per_second=60
+common/physics_interpolation=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+renderer/rendering_method.mobile="mobile"
+textures/vram_compression/import_etc2_astc=true
+anti_aliasing/quality/msaa_3d=4
+anti_aliasing/quality/screen_space_aa=0
+scaling_3d/scale=1.0
+textures/default_filters/anisotropic_filtering_level=16
+environment/defaults/default_clear_color=Color(0.043, 0.031, 0.071, 1)

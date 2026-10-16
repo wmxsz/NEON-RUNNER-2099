@@ -1,0 +1,39 @@
+{
+  "product": "NEON RUNNER 2099",
+  "display_name": "霓虹疾驰 2099",
+  "version": "4.3.0-G",
+  "android_version_code": 39,
+  "godot_series": "4.7",
+  "physics_ticks_per_second": 60,
+  "replay_schema": 2,
+  "replay_ruleset_version": 1,
+  "asset_counts": {
+    "glb_models": 9,
+    "pbr_textures": 6,
+    "music_tracks": 9,
+    "sfx_streams": 12,
+    "ui_vector_icons": 12
+  },
+  "delivery": {
+    "contains_apk": false,
+    "release_signing_configured": false,
+    "engine_semantic_validation": "not_run_in_current_environment",
+    "android_device_validation": "not_run_in_current_environment"
+  },
+  "project_name": "NEON RUNNER 2099",
+  "main_scene": "res://scenes/main.tscn",
+  "renderer": "mobile",
+  "viewport": {
+    "width": 412,
+    "height": 915,
+    "orientation": "portrait"
+  },
+  "android_package_id": "com.neonrunner2099.game",
+  "android_abis": [
+    "arm64-v8a"
+  ],
+  "android_backup_enabled": true,
+  "android_artifact_name": "NEON_RUNNER_2099.apk",
+  "godot_recommended_version": "4.7.2-stable",
+  "current_audit_report": "docs/audit/V4_3_0_CLEAN_HANDOFF.md"
+}

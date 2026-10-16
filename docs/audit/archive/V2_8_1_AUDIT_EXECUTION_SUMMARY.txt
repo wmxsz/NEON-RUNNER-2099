@@ -1,0 +1,30 @@
+霓虹疾驰 2099 v2.8.1-G 全项目升级机会扫描
+审计日期：2026-10-16
+本轮只扫描与登记，没有修改游戏源码。
+
+现有离线检查：通过。
+- 9 GLB / 6 PBR textures
+- 55 literal resource references / 30 unique UIDs
+- 9 OGG music / 12 WAV SFX, OGG total compressed file size ~12.12 MB
+- 26 patterns / 47 obstacles / 24 chip lines
+- 16 GDScript lexical-structure scans (NOT Godot semantic compile)
+- 24 Markdown local-link checks
+
+审计清单：35 项
+P0: 1
+P1: 6
+P2: 21
+P3: 7
+
+最高优先级问题：scenes/main.gd declares run_dda as bool but compute_dda() returns String and Game.start_run()/dda_gap_for()/dda_unlock_for() expect String. Must resolve before treating the project as buildable.
+Second confirmed gameplay risk: entities/spawner.gd can still place a powerup after the 6 blocked-position retries end without a final `_lane_blocked()` check.
+
+Important limits:
+- Godot compiler unavailable in the audit environment.
+- No Android SDK/ADB available.
+- No APK was built or installed.
+- Pattern catalog validator is structural, not a continuous-time collision solver.
+- Performance and final audio mix require in-engine and device measurements.
+
+Full report: 霓虹疾驰2099_v2.8.1-G_全项目升级机会审计报告.md
+Raw offline log: neon_v2.9_baseline_offline.log
