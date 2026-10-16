@@ -1,0 +1,97 @@
+name: Godot validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: godot-validation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Static checks + Godot 4.7.2 semantic/runtime tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: 4.7.2-stable
+      GODOT_BIN: /usr/local/bin/godot
+      NR2099_TEST_MODE: "1"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            ca-certificates curl unzip python3-pip \
+            libx11-6 libxcursor1 libxinerama1 libxrandr2 libxi6 \
+            libgl1 libasound2t64 libpulse0
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Install Python validation dependencies
+        run: |
+          python3 -m pip install --user --break-system-packages \
+            "numpy>=1.26,<3" "Pillow>=10,<13" "trimesh>=4,<5"
+
+      - name: Download pinned official Godot release
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://godotengine.org/download/archive/4.7.2-stable/"
+          # Official download redirect for Linux x86_64, standard (non-.NET) build.
+          binary_url="https://downloads.godotengine.org/?flavor=stable&platform=linux.64&slug=linux.x86_64.zip&version=4.7.2"
+          curl --fail --location --retry 3 --retry-delay 2 "$binary_url" -o "$RUNNER_TEMP/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d "$RUNNER_TEMP/godot"
+          bin="$RUNNER_TEMP/godot/Godot_v4.7.2-stable_linux.x86_64"
+          test -f "$bin"
+          chmod +x "$bin"
+          actual="$("$bin" --headless --version)"
+          echo "Godot version: $actual"
+          case "$actual" in
+            4.7.2.stable*) ;;
+            *) echo "::error::Expected Godot 4.7.2-stable, got $actual"; exit 1 ;;
+          esac
+          sudo ln -sf "$bin" /usr/local/bin/godot
+          godot --headless --version
+
+      - name: Verify manifest-pinned engine and source archive-free checkout
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("RELEASE_MANIFEST.json").read_text(encoding="utf-8"))
+          assert manifest["version"] == "4.3.0-G", manifest["version"]
+          assert manifest["godot_recommended_version"] == "4.7.2-stable", manifest["godot_recommended_version"]
+          assert Path("project.godot").is_file()
+          assert Path(manifest["main_scene"].replace("res://", "")).is_file()
+          assert not Path("NEON_RUNNER_2099_v4.3.0-G_source.zip").exists(), "Do not keep the import ZIP in the working tree"
+          print("PASS manifest, pinned engine, main scene, and clean repository root")
+          PY
+
+      - name: Run offline asset, gameplay-contract and source checks plus Godot tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts
+          sh tools/run_offline_checks.sh 2>&1 | tee artifacts/validation.log
+
+      - name: Upload validation log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-validation-log
+          path: artifacts/validation.log
+          if-no-files-found: warn
+          retention-days: 14
