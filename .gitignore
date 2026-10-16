@@ -1,0 +1,19 @@
+# Godot generated/cache files
+.godot/
+.import/
+.export/
+.export_template.cfg
+
+# Build/export outputs
+build/
+dist/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
