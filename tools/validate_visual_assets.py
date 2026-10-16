@@ -1201,7 +1201,7 @@ def validate_visual_quality_contracts() -> int:
         fail("Armor micro-normal amplitude must remain calibrated for native StandardMaterial3D.detail_normal")
 
     for setting in (
-        "anti_aliasing/quality/msaa_3d=4",
+        "anti_aliasing/quality/msaa_3d=2",
         "textures/default_filters/anisotropic_filtering_level=16",
         "scaling_3d/scale=1.0",
         'renderer/rendering_method="mobile"',
@@ -1211,7 +1211,7 @@ def validate_visual_quality_contracts() -> int:
     if "get_viewport().msaa_3d = Viewport.MSAA_4X" not in telemetry or "Viewport.MSAA_DISABLED" in telemetry or "Viewport.MSAA_2X" in telemetry:
         fail("Adaptive performance grades must preserve 4x MSAA and must not blur edges when FPS pressure appears")
     glow_fn = world.split("func _apply_glow_profile()", 1)[1].split("func set_perf_profile(grade: String)", 1)[0] if "func _apply_glow_profile()" in world else ""
-    if "_env.set_glow_level(index, levels[index])" not in glow_fn or "levels = [0.36, 0.56, 0.34, 0.18, 0.07, 0.0, 0.0]" not in glow_fn or "levels = [0.42, 0.60, 0.24, 0.0, 0.0, 0.0, 0.0]" not in glow_fn:
+    if "_env.set_glow_level(index, levels[index])" not in glow_fn or "levels.assign([0.36, 0.56, 0.34, 0.18, 0.07, 0.0, 0.0])" not in glow_fn or "levels.assign([0.42, 0.60, 0.24, 0.0, 0.0, 0.0, 0.0])" not in glow_fn:
         fail("Native glow must budget actual levels per device tier, not just brightness")
     if "_env.glow_enabled = _overclocking or _perf_profile != \"low\"" not in glow_fn or "_env.glow_intensity = 1.1 if _overclocking else _base_glow" not in glow_fn:
         fail("Low-tier glow should stay disabled except the bounded overclock burst")
