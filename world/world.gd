@@ -1201,13 +1201,13 @@ func _apply_glow_profile() -> void:
         var levels: Array[float] = []
         match _perf_profile:
                 "high":
-                        levels = [0.36, 0.56, 0.34, 0.18, 0.07, 0.0, 0.0]
+                        levels.assign([0.36, 0.56, 0.34, 0.18, 0.07, 0.0, 0.0])
                 "mid":
-                        levels = [0.42, 0.60, 0.24, 0.0, 0.0, 0.0, 0.0]
+                        levels.assign([0.42, 0.60, 0.24, 0.0, 0.0, 0.0, 0.0])
                 _:
                         # Low tier normally skips bloom completely. During overclock, retain
                         # only two local glow levels for a readable energy burst at low cost.
-                        levels = [0.52, 0.68, 0.0, 0.0, 0.0, 0.0, 0.0] if _overclocking else [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+                        levels.assign([0.52, 0.68, 0.0, 0.0, 0.0, 0.0, 0.0] if _overclocking else [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         for index in range(7):
                 _env.set_glow_level(index, levels[index])
         _env.glow_enabled = _overclocking or _perf_profile != "low"
