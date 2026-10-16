@@ -109,13 +109,17 @@ func _t_trace_storage() -> void:
         }
         _ok(OS.get_environment("NR2099_TEST_MODE") == "1", "测试运行使用隔离 profile 环境")
         _ok(main._last_run_trace_path() == "user://nr2099_test_last_run_input_trace.json", "测试回放使用独立文件名")
-        _ok(main._persist_last_run_trace(trace), "第一份回放记录原子写入")
+        _ok(main._trace_document_is_well_formed(trace), "回放文档满足持久化 schema")
+        _ok(main.input.validate_replay_trace(trace), "回放文档满足播放规则")
+        var first_write_ok: bool = main._persist_last_run_trace(trace)
+        _ok(first_write_ok, "第一份回放记录原子写入%s" % ("" if first_write_ok else "（%s）" % main._last_trace_persist_error))
         _ok(not main._persist_last_run_trace({"schema": 2}), "拒绝不完整记录而不覆盖上次有效记录")
         var preserved: Dictionary = main._read_valid_last_run_trace()
         _ok(int(preserved.get("seed", 0)) == 2099, "无效新记录不会污染有效主记录")
         var replacement := trace.duplicate(true)
         replacement["seed"] = 2100
-        _ok(main._persist_last_run_trace(replacement), "覆盖时保留上一份有效备份")
+        var replacement_ok: bool = main._persist_last_run_trace(replacement)
+        _ok(replacement_ok, "覆盖时保留上一份有效备份%s" % ("" if replacement_ok else "（%s）" % main._last_trace_persist_error))
         var primary := FileAccess.open(main._last_run_trace_path(), FileAccess.WRITE)
         if primary != null:
                 primary.store_string("{broken-json")
