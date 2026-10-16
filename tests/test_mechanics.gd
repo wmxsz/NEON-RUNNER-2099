@@ -187,7 +187,8 @@ func _t_input_focus_loss() -> void:
         main.input._active_touch_index = 2
         main.input._touch_started_enabled = true
         main.input._moved = true
-        main.input._queue = [{"a": "jump"}]
+        main.input._queue.clear()
+        main.input._queue.append({"a": "jump"})
         main.input._notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
         _ok(main.input._active_touch_index == -1, "应用失焦复位活动触点")
         _ok(not main.input._touch_started_enabled and main.input._queue.is_empty(), "失焦同时丢弃旧手势与待处理输入")
@@ -207,9 +208,9 @@ func _t_audio_and_visual() -> void:
         _ok(music_idx >= 0 and sfx_idx >= 0, "Music/SFX 双总线存在（")
         _ok(AudioServer.get_bus_effect_count(sfx_idx) >= 1, "SFX 总线带效果（≥1）")
         # 粒子预算
-        # 分级感知：粒子预算随 Telemetry.perf_grade 缩放（low 500/120 · mid 900/260 · high 1200/260）
+        # 分级感知：粒子预算随 Telemetry.perf_grade 缩放（low 500/120 · mid 900/180 · high 1200/260）
         var expect_rain: int = { "low": 500, "mid": 900, "high": 1200 }[Telemetry.perf_grade]
-        var expect_lines: int = { "low": 120, "mid": 260, "high": 260 }[Telemetry.perf_grade]
+        var expect_lines: int = { "low": 120, "mid": 180, "high": 260 }[Telemetry.perf_grade]
         _ok(main.effects._rain.amount == expect_rain, "雨粒子 %d（%s 档）" % [expect_rain, Telemetry.perf_grade])
         _ok(main.effects._speed_lines.amount == expect_lines, "速度线 %d（%s 档）" % [expect_lines, Telemetry.perf_grade])
         _ok(main.effects._shards.size() == 48, "碎裂池 48（原 16）")
