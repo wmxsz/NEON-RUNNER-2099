@@ -466,51 +466,54 @@ const TEST_LAST_RUN_TRACE_PATH := "user://nr2099_test_last_run_input_trace.json"
 func _last_run_trace_path() -> String:
         return TEST_LAST_RUN_TRACE_PATH if OS.get_environment("NR2099_TEST_MODE") == "1" else LAST_RUN_TRACE_PATH
 
-func _trace_document_is_well_formed(candidate: Variant) -> bool:
+func _trace_document_problem(candidate: Variant) -> String:
         if not (candidate is Dictionary):
-                return false
+                return "not_dictionary"
         var trace: Dictionary = candidate
         if typeof(trace.get("schema", null)) != TYPE_INT or int(trace.schema) != 2:
-                return false
+                return "schema"
         if typeof(trace.get("game_version", null)) != TYPE_STRING or typeof(trace.get("engine_version", null)) != TYPE_STRING:
-                return false
+                return "version_type"
         if typeof(trace.get("physics_hz", null)) != TYPE_INT or int(trace.physics_hz) < 1:
-                return false
+                return "physics_hz"
         if typeof(trace.get("ruleset_version", null)) != TYPE_INT or int(trace.ruleset_version) != 1:
-                return false
+                return "ruleset_version"
         if typeof(trace.get("seed", null)) != TYPE_INT or int(trace.seed) <= 0:
-                return false
+                return "seed"
         if typeof(trace.get("frames", null)) != TYPE_INT or int(trace.frames) < 0:
-                return false
+                return "frames"
         if typeof(trace.get("dda_enabled", null)) != TYPE_BOOL or typeof(trace.get("dda_mode", null)) != TYPE_STRING:
-                return false
+                return "dda_types"
         if not (String(trace.dda_mode) in ["", "gentle", "hardcore"]):
-                return false
+                return "dda_mode"
         if not bool(trace.dda_enabled) and String(trace.dda_mode) != "":
-                return false
+                return "dda_mode_when_disabled"
         if typeof(trace.get("truncated", null)) != TYPE_BOOL or typeof(trace.get("replayable", null)) != TYPE_BOOL:
-                return false
+                return "replay_flags"
         if typeof(trace.get("ineligibleReasons", null)) != TYPE_ARRAY or typeof(trace.get("events", null)) != TYPE_ARRAY:
-                return false
+                return "array_fields"
         var events: Array = trace.events
         if events.size() > 8000:
-                return false
+                return "event_count"
         var last_frame := 0
         for raw_event in events:
                 if not (raw_event is Dictionary):
-                        return false
+                        return "event_not_dictionary"
                 var frame_value: Variant = raw_event.get("frame", null)
                 var action_value: Variant = raw_event.get("action", null)
                 if typeof(frame_value) != TYPE_INT or int(frame_value) < 1 or int(frame_value) < last_frame or int(frame_value) > int(trace.frames):
-                        return false
+                        return "event_frame"
                 if typeof(action_value) != TYPE_STRING or not (String(action_value) in ["lane", "jump", "slide"]):
-                        return false
+                        return "event_action"
                 if String(action_value) == "lane":
                         var direction_value: Variant = raw_event.get("direction", 0)
                         if typeof(direction_value) != TYPE_INT or not (int(direction_value) in [-1, 1]):
-                                return false
+                                return "event_direction"
                 last_frame = int(frame_value)
-        return true
+        return ""
+
+func _trace_document_is_well_formed(candidate: Variant) -> bool:
+        return _trace_document_problem(candidate).is_empty()
 
 func _trace_persist_failed(reason: String) -> bool:
         _last_trace_persist_error = reason
@@ -550,7 +553,7 @@ func _persist_last_run_trace(trace: Dictionary) -> bool:
         var parsed: Variant = parser.data
         if parse_error != OK or not _trace_document_is_well_formed(parsed):
                 DirAccess.remove_absolute(temporary_abs)
-                return _trace_persist_failed("verify_temp:%s" % error_string(parse_error))
+                return _trace_persist_failed("verify_temp:%s:%s" % [error_string(parse_error), _trace_document_problem(parsed)])
 
         if FileAccess.file_exists(target):
                 if FileAccess.file_exists(backup):
