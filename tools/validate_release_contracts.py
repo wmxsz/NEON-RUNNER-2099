@@ -80,7 +80,7 @@ def main() -> int:
             fail(f"{rel} must force an isolated save/replay namespace before Main is instantiated")
         if 'remove_absolute(ProjectSettings.globalize_path("user://nr2099_save.cfg"))' in harness:
             fail(f"{rel} must never delete the player's production save")
-    for token in ("func _persist_last_run_trace(trace: Dictionary) -> bool:", "writer.flush()", "JSON.parse_string(verifier.get_as_text())", 'target + ".bak"', "DirAccess.rename_absolute(temporary_abs, target_abs)", "func _read_valid_last_run_trace() -> Dictionary:"):
+    for token in ("func _persist_last_run_trace(trace: Dictionary) -> bool:", "writer.flush()", "parser.parse(candidate_text)", 'target + ".bak"', "DirAccess.rename_absolute(temporary_abs, target_abs)", "func _read_valid_last_run_trace() -> Dictionary:"):
         if token not in main_source:
             fail(f"Atomic replay persistence/recovery contract missing: {token}")
     if 'OS.get_environment("NR2099_TEST_MODE") == "1" else LAST_RUN_TRACE_PATH' not in main_source:
