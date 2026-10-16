@@ -28,6 +28,8 @@ var _app_suspended: bool = false
 var _app_bgm_was_playing: bool = false
 # Reuse the small effects payload instead of allocating a Dictionary + Vector3 on every physics tick.
 var _effect_player_info: Dictionary = {"pos": Vector3.ZERO, "boost": false}
+# Last low-level write failure is retained for diagnostics/tests; never shown to players.
+var _last_trace_persist_error: String = ""
 
 func _ready() -> void:
         game = Game.new()
@@ -510,11 +512,16 @@ func _trace_document_is_well_formed(candidate: Variant) -> bool:
                 last_frame = int(frame_value)
         return true
 
+func _trace_persist_failed(reason: String) -> bool:
+        _last_trace_persist_error = reason
+        return false
+
 func _persist_last_run_trace(trace: Dictionary) -> bool:
         # Write + flush + parse back before touching the previous good record.
         # Keep a last-good .bak and roll it back if installing the new file fails.
+        _last_trace_persist_error = ""
         if not _trace_document_is_well_formed(trace):
-                return false
+                return _trace_persist_failed("invalid_document")
         var target := _last_run_trace_path()
         var temporary := target + ".tmp"
         var backup := target + ".bak"
@@ -523,7 +530,7 @@ func _persist_last_run_trace(trace: Dictionary) -> bool:
         var backup_abs := ProjectSettings.globalize_path(backup)
         var writer := FileAccess.open(temporary, FileAccess.WRITE)
         if writer == null:
-                return false
+                return _trace_persist_failed("open_temp:%s" % error_string(FileAccess.get_open_error()))
         writer.store_string(JSON.stringify(trace))
         writer.flush()
         var write_error := writer.get_error()
@@ -531,30 +538,39 @@ func _persist_last_run_trace(trace: Dictionary) -> bool:
         if write_error != OK or not FileAccess.file_exists(temporary):
                 if FileAccess.file_exists(temporary):
                         DirAccess.remove_absolute(temporary_abs)
-                return false
+                return _trace_persist_failed("write_temp:%s" % error_string(write_error))
         var verifier := FileAccess.open(temporary, FileAccess.READ)
         if verifier == null:
                 DirAccess.remove_absolute(temporary_abs)
-                return false
-        var parsed: Variant = JSON.parse_string(verifier.get_as_text())
+                return _trace_persist_failed("reopen_temp:%s" % error_string(FileAccess.get_open_error()))
+        var candidate_text := verifier.get_as_text()
         verifier.close()
-        if not _trace_document_is_well_formed(parsed):
+        var parser := JSON.new()
+        var parse_error := parser.parse(candidate_text)
+        var parsed: Variant = parser.data
+        if parse_error != OK or not _trace_document_is_well_formed(parsed):
                 DirAccess.remove_absolute(temporary_abs)
-                return false
+                return _trace_persist_failed("verify_temp:%s" % error_string(parse_error))
 
         if FileAccess.file_exists(target):
-                if FileAccess.file_exists(backup) and DirAccess.remove_absolute(backup_abs) != OK:
+                if FileAccess.file_exists(backup):
+                        var remove_error := DirAccess.remove_absolute(backup_abs)
+                        if remove_error != OK:
+                                DirAccess.remove_absolute(temporary_abs)
+                                return _trace_persist_failed("remove_old_backup:%s" % error_string(remove_error))
+                var backup_error := DirAccess.rename_absolute(target_abs, backup_abs)
+                if backup_error != OK:
                         DirAccess.remove_absolute(temporary_abs)
-                        return false
-                if DirAccess.rename_absolute(target_abs, backup_abs) != OK:
-                        DirAccess.remove_absolute(temporary_abs)
-                        return false
-        if DirAccess.rename_absolute(temporary_abs, target_abs) != OK:
+                        return _trace_persist_failed("rotate_backup:%s" % error_string(backup_error))
+        var install_error := DirAccess.rename_absolute(temporary_abs, target_abs)
+        if install_error != OK:
                 if not FileAccess.file_exists(target) and FileAccess.file_exists(backup):
-                        DirAccess.rename_absolute(backup_abs, target_abs)
+                        var restore_error := DirAccess.rename_absolute(backup_abs, target_abs)
+                        if restore_error != OK:
+                                return _trace_persist_failed("install_temp:%s; restore_backup:%s" % [error_string(install_error), error_string(restore_error)])
                 if FileAccess.file_exists(temporary):
                         DirAccess.remove_absolute(temporary_abs)
-                return false
+                return _trace_persist_failed("install_temp:%s" % error_string(install_error))
         return true
 
 func _read_valid_last_run_trace() -> Dictionary:
@@ -566,8 +582,14 @@ func _read_valid_last_run_trace() -> Dictionary:
                 var file := FileAccess.open(candidate_path, FileAccess.READ)
                 if file == null:
                         continue
-                var parsed: Variant = JSON.parse_string(file.get_as_text())
+                var candidate_text := file.get_as_text()
                 file.close()
+                # Corrupt files are an expected recovery case; use JSON.parse() so
+                # the recovery path does not emit a misleading engine ERROR log.
+                var parser := JSON.new()
+                if parser.parse(candidate_text) != OK:
+                        continue
+                var parsed: Variant = parser.data
                 if not _trace_document_is_well_formed(parsed):
                         continue
                 var trace: Dictionary = parsed
