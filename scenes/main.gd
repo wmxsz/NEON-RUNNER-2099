@@ -512,6 +512,32 @@ func _trace_document_problem(candidate: Variant) -> String:
                 last_frame = int(frame_value)
         return ""
 
+func _normalize_json_trace(candidate: Variant) -> Variant:
+        # Godot's JSON parser may represent JSON integer tokens as floats. A saved
+        # trace schema intentionally uses integers for frame counters/version codes,
+        # so normalize only finite, whole-number values before applying strict checks.
+        if not (candidate is Dictionary):
+                return candidate
+        var normalized: Dictionary = (candidate as Dictionary).duplicate(true)
+        for field in ["schema", "physics_hz", "ruleset_version", "seed", "frames"]:
+                var value: Variant = normalized.get(field, null)
+                if typeof(value) == TYPE_FLOAT and is_finite(value) and floor(value) == value:
+                        normalized[field] = int(value)
+        if normalized.get("events") is Array:
+                var normalized_events: Array = []
+                for raw_event in normalized["events"]:
+                        if raw_event is Dictionary:
+                                var event: Dictionary = raw_event.duplicate(true)
+                                for field in ["frame", "direction"]:
+                                        var value: Variant = event.get(field, null)
+                                        if typeof(value) == TYPE_FLOAT and is_finite(value) and floor(value) == value:
+                                                event[field] = int(value)
+                                normalized_events.append(event)
+                        else:
+                                normalized_events.append(raw_event)
+                normalized["events"] = normalized_events
+        return normalized
+
 func _trace_document_is_well_formed(candidate: Variant) -> bool:
         return _trace_document_problem(candidate).is_empty()
 
@@ -550,7 +576,7 @@ func _persist_last_run_trace(trace: Dictionary) -> bool:
         verifier.close()
         var parser := JSON.new()
         var parse_error := parser.parse(candidate_text)
-        var parsed: Variant = parser.data
+        var parsed: Variant = _normalize_json_trace(parser.data)
         if parse_error != OK or not _trace_document_is_well_formed(parsed):
                 DirAccess.remove_absolute(temporary_abs)
                 return _trace_persist_failed("verify_temp:%s:%s" % [error_string(parse_error), _trace_document_problem(parsed)])
@@ -592,7 +618,7 @@ func _read_valid_last_run_trace() -> Dictionary:
                 var parser := JSON.new()
                 if parser.parse(candidate_text) != OK:
                         continue
-                var parsed: Variant = parser.data
+                var parsed: Variant = _normalize_json_trace(parser.data)
                 if not _trace_document_is_well_formed(parsed):
                         continue
                 var trace: Dictionary = parsed
