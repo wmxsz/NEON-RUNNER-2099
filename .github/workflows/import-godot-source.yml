@@ -40,9 +40,9 @@ jobs:
           PROJECT_DIR="$RUNNER_TEMP/godot-source/neon-runner-godot"
           test -f "$PROJECT_DIR/project.godot" || { echo "::error::project.godot not found in expected project folder."; exit 1; }
           test -f "$PROJECT_DIR/RELEASE_MANIFEST.json" || { echo "::error::RELEASE_MANIFEST.json is missing."; exit 1; }
-          python3 - <<'PY'
-          import json, pathlib
-          p = pathlib.Path("$RUNNER_TEMP/godot-source/neon-runner-godot/RELEASE_MANIFEST.json")
+          MANIFEST_PATH="$PROJECT_DIR/RELEASE_MANIFEST.json" python3 - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path(os.environ["MANIFEST_PATH"])
           data = json.loads(p.read_text(encoding="utf-8"))
           assert data.get("version") == "4.3.0-G", f"Unexpected version: {data.get('version')!r}"
           assert data.get("main_scene") == "res://scenes/main.tscn", "Unexpected main scene"
